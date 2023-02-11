@@ -1,0 +1,1 @@
+echo "Install Python then pip install Flask"
