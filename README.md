@@ -1,4 +1,4 @@
-# pyrun
+# pyrunner
 Remote Python Execution via REST API
 
 # About
