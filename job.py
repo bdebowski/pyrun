@@ -17,7 +17,14 @@ class Job:
         return vars(self)
 
 
+
+
+
 class JobResult:
+    def __init__(self, job_id, result):
+
+
+class JJobResult:
     def __init__(self, job_id, status: JobStatus = JobStatus.NOT_FOUND, result=None):
         self.id = job_id
         self.status = status
