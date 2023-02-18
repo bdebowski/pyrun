@@ -1,1 +1,1 @@
-echo "Install Python then pip install Flask"
+echo "Install Python then pip install Flask and psutil"

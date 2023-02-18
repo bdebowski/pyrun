@@ -22,6 +22,13 @@ def foo():
 return_value_container.value = foo()
 """
 
+EXCEEDMEMORY = """
+def foo():
+    l = [1]*1024*1024*512
+
+return_value_container.value = foo()
+"""
+
 CRASH = """
 def foo():
     raise RuntimeError("foo raised this RuntimeError()")
@@ -47,15 +54,15 @@ def run_test():
     t = Thread(target=pool, daemon=True)
     t.start()
     time.sleep(1)
-    codes = [RETURN42, TIMEOUT, CRASH]
-    required_result_type = [int, TimeoutError, RuntimeError]
+    codes = [RETURN42, TIMEOUT, EXCEEDMEMORY, CRASH]
+    required_result_type = [int, TimeoutError, MemoryError, RuntimeError]
     for i in range(100):
-        pool.put_job(i, codes[i % 3])
+        pool.put_job(i, codes[i % 4])
     for i in range(1, 101):
         if i % 10 == 0:
             print("Received {}".format(i))
         job_result = pool.get_result()
-        assert type(job_result.return_val) == required_result_type[job_result.id % 3], "Result type mismatch for result id={}".format(job_result.id)
+        assert type(job_result.return_val) == required_result_type[job_result.id % 4], "Result type mismatch for result id={}".format(job_result.id)
     print("DONE")
 
 

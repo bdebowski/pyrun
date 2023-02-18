@@ -5,6 +5,8 @@ import time
 from dataclasses import dataclass
 from typing import Any, Callable
 
+import psutil
+
 
 @dataclass
 class _Job:
@@ -93,7 +95,7 @@ class SmartPool:
     The SmartPool is intended to be run on its own thread.
     """
 
-    def __init__(self, worker_fn: Callable, args=(), kwargs={}, num_workers: int = 1, timeout_sec: float = 5.0):
+    def __init__(self, worker_fn: Callable, args=(), kwargs={}, num_workers: int = 1, timeout_sec: float = 5.0, maxmem_bytes: int = 1024*1024*1024):
         """
         Creates a SmartPool object.  Run the object on its own thread like so:
 
@@ -113,6 +115,7 @@ class SmartPool:
         self._kwargs = kwargs
         self._num_workers = num_workers
         self._timeout_sec = timeout_sec
+        self._maxmem_bytes = maxmem_bytes
 
         self._processes = []
 
@@ -158,6 +161,14 @@ class SmartPool:
             for p in overtime:
                 p.terminate()
                 self._output_queue.put(JobResult(p.current_job, TimeoutError("The process running this job timed out")))
+                self._processes.remove(p)
+
+            # Check if any processes have exceeded the memory usage limit
+            # If they have, kill that process, remove it from the process pool, and create and put JobResult with a MemoryError
+            oom = [p for p in self._processes if psutil.Process(pid=p.pid).memory_info().rss >= self._maxmem_bytes]
+            for p in oom:
+                p.terminate()
+                self._output_queue.put(JobResult(p.current_job, MemoryError("The process running this job exceeded the memory usage limit")))
                 self._processes.remove(p)
 
             # Check if any processes have died (i.e. is_alive() == False)
