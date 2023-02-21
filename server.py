@@ -24,9 +24,6 @@ pool = SmartPool(
     num_workers=4,
     timeout_sec=5.0,
     maxmem_bytes=512*ONE_MB)
-smartpool_thread = Thread(target=pool, name='smartpool_thread', daemon=True)
-smartpool_thread.start()
-
 app = Flask(__name__)
 
 
@@ -36,7 +33,7 @@ def get_result():
     results = []
     while pool.result_ready() and len(results) < num_results:
         result = pool.get_result()
-        return_val = result.return_val.__repr__() if type(result.return_val) == Exception else result.return_val
+        return_val = result.return_val.__repr__() if isinstance(result.return_val, Exception) else result.return_val
         results.append({"id": result.id, "returned": return_val})
     return results
 
@@ -49,3 +46,9 @@ def post_request():
     except Exception as e:
         return e.__repr__()
     return "OK"
+
+
+if __name__ == "__main__":
+    smartpool_thread = Thread(target=pool, name='smartpool_thread', daemon=True)
+    smartpool_thread.start()
+    app.run()

@@ -24,7 +24,7 @@ return_value_container.value = foo()
 
 EXCEEDMEMORY = """
 def foo():
-    l = [1]*1024*1024*512
+    l = [1]*1024*1024*256
 
 return_value_container.value = foo()
 """
