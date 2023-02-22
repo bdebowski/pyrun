@@ -139,6 +139,13 @@ class SmartPool:
 
     def __call__(self):
         while True:
+            # Check if any processes have died (i.e. is_alive() == False)
+            # For any that died, remove them from the pool and return a JobResult with ProcessDiedException
+            died = [p for p in self._processes if not p.is_alive()]
+            for p in died:
+                self._output_queue.put(JobResult(p.current_job, ProcessDiedException("The process running this job died outside a try/except block")))
+                self._processes.remove(p)
+
             # Ensure there are num_workers processes running
             # Spin up however many new processes we need
             while len(self._processes) < self._num_workers:
@@ -165,17 +172,16 @@ class SmartPool:
 
             # Check if any processes have exceeded the memory usage limit
             # If they have, kill that process, remove it from the process pool, and create and put JobResult with a MemoryError
-            oom = [p for p in self._processes if psutil.Process(pid=p.pid).memory_info().rss >= self._maxmem_bytes]
+            oom = []
+            for p in self._processes:
+                try:
+                    if psutil.Process(pid=p.pid).memory_info().rss >= self._maxmem_bytes:
+                        oom.append(p)
+                except psutil.NoSuchProcess:
+                    pass    # Will be cleaned up at beginning of next pass through this loop
             for p in oom:
                 p.terminate()
                 self._output_queue.put(JobResult(p.current_job, MemoryError("The process running this job exceeded the memory usage limit")))
-                self._processes.remove(p)
-
-            # Check if any processes have died (i.e. is_alive() == False)
-            # For any that died, remove them from the pool and return a JobResult with ProcessDiedException
-            died = [p for p in self._processes if not p.is_alive()]
-            for p in died:
-                self._output_queue.put(JobResult(p.current_job, ProcessDiedException("The process running this job died outside a try/except block")))
                 self._processes.remove(p)
 
             # Sleep a little so we don't hog cpu
