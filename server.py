@@ -1,11 +1,9 @@
 from threading import Thread
+from os import environ
 
 from flask import Flask, request
 
 from smartpool import SmartPool
-
-
-ONE_MB = 1024*1024
 
 
 class ReturnValContainer:
@@ -21,9 +19,9 @@ def exec_and_return(payload: str, _globals={}):
 pool = SmartPool(
     worker_fn=exec_and_return,
     kwargs={"_globals": {"return_value_container": ReturnValContainer()}},
-    num_workers=4,
-    timeout_sec=5.0,
-    maxmem_bytes=512*ONE_MB)
+    num_workers=int(environ["PYRUNNER_NUM_WORKERS"]),
+    timeout_sec=float(environ["PYRUNNER_TIMEOUT_SEC"]),
+    maxmem_bytes=int(environ["PYRUNNER_MAXMEM_MB"])*1024*1024)
 app = Flask(__name__)
 
 
@@ -51,4 +49,4 @@ def post_request():
 if __name__ == "__main__":
     smartpool_thread = Thread(target=pool, name='smartpool_thread', daemon=True)
     smartpool_thread.start()
-    app.run()
+    app.run(host="0.0.0.0")
