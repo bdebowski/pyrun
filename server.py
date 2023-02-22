@@ -49,4 +49,4 @@ def post_request():
 if __name__ == "__main__":
     smartpool_thread = Thread(target=pool, name='smartpool_thread', daemon=True)
     smartpool_thread.start()
-    app.run(host="0.0.0.0")
+    app.run(host="0.0.0.0", port=int(environ["PYRUNNER_PORT"]))
