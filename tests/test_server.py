@@ -1,5 +1,7 @@
-import requests
 from time import sleep
+from os import environ
+
+import requests
 
 
 RETURN42 = """
@@ -52,7 +54,7 @@ def get_n(n):
             return jobs
 
 
-url = "http://127.0.0.1:5345"
+url = "http://{}:{}".format(environ["PYRUNNER_SERVER_IP"], environ["PYRUNNER_SERVER_PORT"])
 
 for i in range(5):
     print("Posting 10 jobs")
