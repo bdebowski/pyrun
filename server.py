@@ -95,7 +95,11 @@ def get_result():
     num_results = request.json["num_results"]
     results = []
     while pool.result_ready() and len(results) < num_results:
+        # pool.result_ready() does not guarantee an item is actually there for us to grab
+        # in this case, pool.get_result() will just return None
         result = pool.get_result()
+        if result is None:
+            break
         return_val = result.return_val.__repr__() if isinstance(result.return_val, Exception) else result.return_val
         results.append({"id": result.id, "returned": return_val})
     return results
