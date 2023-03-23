@@ -6,6 +6,7 @@ from typing import AnyStr, AsyncIterable, ByteString, ValuesView, List, MappingV
     Literal, ChainMap, KeysView, Any, MutableMapping, Iterable, Coroutine, FrozenSet, Awaitable, Hashable
 
 from flask import Flask, request
+from waitress import serve
 
 from smartpool import SmartPool
 
@@ -118,4 +119,4 @@ def post_request():
 if __name__ == "__main__":
     smartpool_thread = Thread(target=pool, name='smartpool_thread', daemon=True)
     smartpool_thread.start()
-    app.run(host="0.0.0.0", port=int(environ["PYRUNNER_PORT"]))
+    serve(app, host="0.0.0.0", port=int(environ["PYRUNNER_PORT"]))
