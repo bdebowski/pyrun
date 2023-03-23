@@ -1,6 +1,7 @@
-from multiprocessing import Process, Pipe, TimeoutError
+from multiprocessing import Process, Pipe, TimeoutError, Queue
 from multiprocessing.connection import Connection
-from queue import Queue, Empty
+from queue import Empty
+
 import time
 from dataclasses import dataclass
 from typing import Any, Callable, Union
@@ -28,7 +29,6 @@ class ProcessDiedException(Exception):
 
 
 class _ManagedProcess(Process):
-    _STOP_COMMAND = "STOP"
 
     def __init__(self, parent_conn: Connection, child_conn: Connection, worker_fn: Callable, args=(), kwargs={}):
         super().__init__(daemon=True)
@@ -68,9 +68,6 @@ class _ManagedProcess(Process):
             return 0.0
         return time.time() - self._job_start_time
 
-    def stop(self):
-        self._parent_conn.send(self._STOP_COMMAND)
-
     def run(self):
         """
         Overrides Process.run()
@@ -78,7 +75,7 @@ class _ManagedProcess(Process):
         :return:
         """
         job = self._child_conn.recv()
-        while job != self._STOP_COMMAND:
+        while True:
             try:
                 return_val = self._worker_fn(job.payload, *self._args, **self._kwargs)
             except Exception as e:
@@ -96,6 +93,8 @@ class SmartPool:
 
     The SmartPool is intended to be run on its own thread.
     """
+
+    _STOP_COMMAND = "STOP"
 
     def __init__(self, worker_fn: Callable, args=(), kwargs={}, num_workers: int = 1, timeout_sec: float = 5.0, maxmem_bytes: int = 1024*1024*1024):
         """
@@ -136,6 +135,9 @@ class SmartPool:
         except Empty:
             return None
 
+    def stop(self):
+        self._input_queue.put(self._STOP_COMMAND)
+
     def _add_process(self):
         parent_conn, child_conn = Pipe()
         new_process = _ManagedProcess(parent_conn, child_conn, self._worker_fn, self._args, self._kwargs)
@@ -143,7 +145,8 @@ class SmartPool:
         self._processes.append(new_process)
 
     def __call__(self):
-        while True:
+        stop_called = False
+        while not stop_called:
             # Check if any processes have died (i.e. is_alive() == False)
             # For any that died, remove them from the pool and return a JobResult with ProcessDiedException
             died = [p for p in self._processes if not p.is_alive()]
@@ -164,6 +167,9 @@ class SmartPool:
             while not self._input_queue.empty() and len(available) > 0:
                 try:
                     job = self._input_queue.get(block=False)
+                    if job == self._STOP_COMMAND:
+                        stop_called = True
+                        break
                     next_available = available.pop()
                     next_available.assign_job(job)
                 # If it turns out the queue is empty after all then we just exit the while loop

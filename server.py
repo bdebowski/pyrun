@@ -1,4 +1,4 @@
-from threading import Thread
+from multiprocessing import Process
 from os import environ
 from typing import AnyStr, AsyncIterable, ByteString, ValuesView, List, MappingView, OrderedDict, DefaultDict, ContextManager, Union, Optional, \
     ItemsView, Callable, ClassVar, Type, Pattern, NoReturn, AsyncGenerator, Match, Set, Dict, MutableSequence, Generator, Counter, Collection, \
@@ -117,6 +117,9 @@ def post_request():
 
 
 if __name__ == "__main__":
-    smartpool_thread = Thread(target=pool, name='smartpool_thread', daemon=True)
-    smartpool_thread.start()
-    serve(app, host="0.0.0.0", port=int(environ["PYRUNNER_PORT"]))
+    smartpool_process = Process(target=pool, name='smartpool_process')
+    smartpool_process.start()
+    try:
+        serve(app, host="0.0.0.0", port=int(environ["PYRUNNER_PORT"]))
+    finally:
+        pool.stop()
