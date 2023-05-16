@@ -17,12 +17,12 @@ class ReturnValContainer:
 
 
 def exec_and_return(payload: str, _globals={}):
+    _globals["return_value_container"] = ReturnValContainer()
     exec(payload, _globals)
     return _globals["return_value_container"].value
 
 
 exec_globals = {
-    "return_value_container": ReturnValContainer(),
     "AnyStr": AnyStr,
     "AsyncIterable": AsyncIterable,
     "ByteString": ByteString,
